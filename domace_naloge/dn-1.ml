@@ -468,7 +468,9 @@ let primer_vnosi =
      Izdaj {izdelek = "cokolada"; cena = 120; drobiz = []}])
   [*----------------------------------------------------------------------------*)
 
-let simuliraj _ _ = failwith "TODO"
+let simuliraj stanje vnosi = 
+  List.fold_left_map (fun stanje vnos -> korak stanje vnos) stanje vnosi
+
 
 (*----------------------------------------------------------------------------*
    ### Analiza izhodov
@@ -482,7 +484,15 @@ let simuliraj _ _ = failwith "TODO"
    - : int = 240
   [*----------------------------------------------------------------------------*)
 
-let promet _ = failwith "TODO"
+let promet izhodi = 
+  List.fold_left 
+    (fun vsota izhod ->
+      match izhod with
+      | Izdaj {cena; _ } -> vsota + cena
+      | _ -> vsota
+      )
+    0
+    izhodi
 
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `napake : izhod list -> napaka list`, ki vrne seznam vseh
@@ -493,7 +503,15 @@ let promet _ = failwith "TODO"
    [Razprodano "cips"; NiIzdelka "kava"; Razprodano "cokolada"; VVzdrzevanju]
   [*----------------------------------------------------------------------------*)
 
-let napake _ = failwith "TODO"
+let napake izhodi =
+  List.fold_right
+    (fun izhod acc -> 
+      match izhod with
+      | Napaka napaka -> napaka :: acc
+      | _ -> acc)
+    izhodi
+    []
+                      
 
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `izplacani_kovanci : izhod list -> kovanec list`, ki vrne
@@ -504,7 +522,17 @@ let napake _ = failwith "TODO"
    - : kovanec list = [C50; C20; C10; C50]
   [*----------------------------------------------------------------------------*)
 
-let izplacani_kovanci _ = failwith "TODO"
+let izplacani_kovanci izhodi = 
+  List.fold_left
+    (fun sez izhod ->
+      match izhod with
+      | Izdaj {drobiz; _ } -> sez @ drobiz
+
+      | Vrni drobiz -> sez @ drobiz
+      | _ -> sez
+      )
+    []
+    izhodi
 
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `prodano : izhod list -> (string * int) list`, ki za vsak
@@ -519,7 +547,23 @@ let izplacani_kovanci _ = failwith "TODO"
    - : (string * int) list = [("voda", 2); ("cokolada", 1)]
   [*----------------------------------------------------------------------------*)
 
-let prodano _ = failwith "TODO"
+let prodano izhodi = 
+  List.fold_left
+    (fun sez izhod -> 
+      match izhod with
+      | Izdaj {izdelek; _ } ->
+          if List.mem_assoc izdelek sez then
+            List.map (fun (ime, stevilo) ->
+                        if ime = izdelek then (ime, stevilo + 1)
+                        else (ime, stevilo)) sez
+
+          else sez @ [(izdelek, 1)]
+      | _ -> sez
+      )
+    []
+    izhodi
+
+
 
 (* Pripomočki za testiranje - ignorirajte *)
 
