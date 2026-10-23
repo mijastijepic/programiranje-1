@@ -48,9 +48,24 @@ type vec = float list
     `Neujemajoca_dimenzija`.
   [*----------------------------------------------------------------------------*)
 
-let rec sestej_v _ _ = failwith "TODO"
-let rec pomnozi_skalar _ _ = failwith "TODO"
-let rec skalarni_produkt _ _ = failwith "TODO"
+let rec sestej_v v1 v2 =
+  match v1, v2 with
+  | [], [] -> []
+  | x :: xs, y :: ys -> (x +. y) :: sestej_v xs ys
+  | _, _ -> raise Neujemajoca_dimenzija
+
+
+let rec pomnozi_skalar a v =
+  match v with
+  | [] -> []
+  | x :: xs -> (a *. x) :: pomnozi_skalar a xs
+
+
+let rec skalarni_produkt v1 v2 =
+  match v1, v2 with
+  | [], [] -> 0.0
+  | x :: xs, y :: ys -> (x *. y) +. skalarni_produkt xs ys
+  | _, _ -> raise Neujemajoca_dimenzija
 
 (*----------------------------------------------------------------------------*
    ## Seznami
@@ -67,7 +82,11 @@ let rec skalarni_produkt _ _ = failwith "TODO"
     `f (... (f (f a0 x1) x2) ...) xn`.
   [*----------------------------------------------------------------------------*)
 
-let rec zlozi_levo _ _ _ = failwith "TODO"
+let rec zlozi_levo f a sez =
+  match sez with
+  | [] -> a
+  | x :: xs -> zlozi_levo f (f a x) xs
+
 
 (*----------------------------------------------------------------------------*
     Napišite funkcijo `zlozi_desno : ('a -> 'b -> 'b) -> 'b -> 'a list -> 'b`,
@@ -79,7 +98,11 @@ let rec zlozi_levo _ _ _ = failwith "TODO"
     `f x1 (f x2 (... (f xn b0) ...))`.
   [*----------------------------------------------------------------------------*)
 
-let rec zlozi_desno _ _ _ = failwith "TODO"
+let rec zlozi_desno f b sez =
+  match sez with
+  | [] -> b
+  | x :: xs -> f x (zlozi_desno f b xs)
+
 
 (*----------------------------------------------------------------------------*
     Napišite funkcijo
@@ -95,7 +118,13 @@ let rec zlozi_desno _ _ _ = failwith "TODO"
     `f a1 x2 = (a2, y2)`...
   [*----------------------------------------------------------------------------*)
 
-let rec zlozi_levo_pretvori _ _ _ = failwith "TODO"
+let rec zlozi_levo_pretvori f a sez =
+  match sez with
+  | [] -> (a, [])
+  | x :: xs ->
+      let (nov_a, y) = f a x in
+      let (koncni_a, ys) = zlozi_levo_pretvori f nov_a xs in
+      (koncni_a, y :: ys)
 
 (*----------------------------------------------------------------------------*
     Napišite funkcijo
@@ -109,7 +138,11 @@ let rec zlozi_levo_pretvori _ _ _ = failwith "TODO"
     `Neujemajoca_dimenzija`.
   [*----------------------------------------------------------------------------*)
 
-let rec zlozi_levo2 _ _ _ _ = failwith "TODO"
+let rec zlozi_levo2 f a sez1 sez2 =
+  match sez1, sez2 with
+  | [], [] -> a
+  | x :: xs, y :: ys -> zlozi_levo2 f (f a x y) xs ys
+  | _, _ -> raise Neujemajoca_dimenzija
 
 (*----------------------------------------------------------------------------*
    ## Uporaba zlaganja
@@ -126,7 +159,7 @@ let rec zlozi_levo2 _ _ _ _ = failwith "TODO"
     - : float = 5.
   [*----------------------------------------------------------------------------*)
 
-let norma _ = failwith "TODO"
+let norma v = sqrt (zlozi_levo (fun a x -> a +. x *. x) 0.0 v)
 
 (*----------------------------------------------------------------------------*
     Napišite funkcijo
@@ -139,7 +172,7 @@ let norma _ = failwith "TODO"
     - : float = 32.
   [*----------------------------------------------------------------------------*)
 
-let skalarni_produkt_zlozi _ _ = failwith "TODO"
+let skalarni_produkt_zlozi v1 v2 = zlozi_levo2 (fun a x y -> a +. x *. y) 0.0 v1 v2
 
 (*----------------------------------------------------------------------------*
    ## Prodajni avtomat
@@ -163,14 +196,20 @@ type kovanec = C10 | C20 | C50 | E1 | E2
    centih.
   [*----------------------------------------------------------------------------*)
 
-let vrednost _ = failwith "TODO"
+let vrednost kovanec =
+  match kovanec with
+  | C10 -> 10
+  | C20 -> 20
+  | C50 -> 50
+  | E1 -> 100
+  | E2 -> 200
 
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `vsota : kovanec list -> int`, ki vrne skupno vrednost
    seznama kovancev.
   [*----------------------------------------------------------------------------*)
 
-let vsota _ = failwith "TODO"
+let vsota sez = List.fold_left (fun acc kovanec -> acc + (vrednost kovanec)) 0 sez
 
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `drobiz : int -> kovanec list`, ki dani znesek izplača s
@@ -182,7 +221,13 @@ let vsota _ = failwith "TODO"
    postopek za preostali znesek.
   [*----------------------------------------------------------------------------*)
 
-let drobiz _ = failwith "TODO"
+let rec drobiz znesek = 
+  if znesek <= 0 then []
+  else if znesek >= 200 then E2 :: drobiz (znesek - 200)
+  else if znesek >= 100 then E1 :: drobiz (znesek - 100)
+  else if znesek >= 50 then C50 :: drobiz (znesek - 50)
+  else if znesek >= 20 then C20 :: drobiz (znesek - 20)
+  else C10 :: drobiz (znesek - 10)
 
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo `v_niz : int -> string`, ki znesek v centih zapiše kot niz
