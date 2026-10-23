@@ -237,7 +237,8 @@ let rec drobiz znesek =
    - : string = "12.05 €"
   [*----------------------------------------------------------------------------*)
 
-let v_niz _ = failwith "TODO"
+let v_niz znesek =
+  Printf.sprintf "%d.%02d €" (znesek / 100) (znesek mod 100)
 
 (*----------------------------------------------------------------------------*
    ### Zaloga
@@ -259,7 +260,12 @@ let zacetna_zaloga =
    zalogi poišče izdelek z danim imenom.
   [*----------------------------------------------------------------------------*)
 
-let rec poisci _ _ = failwith "TODO"
+let rec poisci ime zaloga =
+  match zaloga with
+  | [] -> None
+  | prvi :: ostali -> if prvi.ime = ime then Some prvi else poisci ime ostali
+
+
 (*----------------------------------------------------------------------------*
    Sestavite funkcijo
    `spremeni_kolicino : string -> int -> izdelek list -> izdelek list`, ki
@@ -267,7 +273,8 @@ let rec poisci _ _ = failwith "TODO"
    negativno). Ostali izdelki naj ostanejo nespremenjeni.
   [*----------------------------------------------------------------------------*)
 
-let spremeni_kolicino _ _ _ = failwith "TODO"
+let spremeni_kolicino ime sprememba zaloga =
+  List.map (fun i -> if i.ime = ime then { i with kolicina = i.kolicina + sprememba } else i) zaloga
 
 (*----------------------------------------------------------------------------*
    ### Stanje, vnosi in izhodi
@@ -320,7 +327,13 @@ let zacetno_stanje = { nacin = Obratuje; kredit = 0; zaloga = zacetna_zaloga }
    - `NiVVzdrzevanju`: `"Avtomat ni v vzdrževanju"`.
   [*----------------------------------------------------------------------------*)
 
-let opis_napake _ = failwith "TODO"
+let opis_napake napaka = 
+  match napaka with
+  | Premalo n -> "Vstavite še " ^ v_niz n
+  | NiIzdelka ime -> "Izdelka " ^ ime ^ " ni"
+  | Razprodano ime -> "Izdelek " ^ ime ^ " je razprodan"
+  | VVzdrzevanju -> "Avtomat je v vzdrževanju"
+  | NiVVzdrzevanju -> "Avtomat ni v vzdrževanju"
 
 (*----------------------------------------------------------------------------*
    ### Korak avtomata
@@ -364,7 +377,57 @@ let opis_napake _ = failwith "TODO"
    - : izhod = Vrni [C50]
   [*----------------------------------------------------------------------------*)
 
-let korak _ _ = failwith "TODO"
+let korak stanje vnos =
+  match stanje.nacin with
+
+  | Obratuje -> (
+      match vnos with
+
+      | Vstavi kovanec -> 
+        let kredit = stanje.kredit + vrednost kovanec in
+        ({stanje with kredit = kredit}, Prikazi kredit)
+
+      | Izberi ime -> (
+        match poisci ime stanje.zaloga with
+
+        | None -> (stanje, Napaka (NiIzdelka ime))
+        | Some izdelek -> 
+            if izdelek.kolicina = 0 then
+              (stanje, Napaka (Razprodano ime))
+            else if stanje.kredit < izdelek.cena
+              then (stanje, Napaka (Premalo (izdelek.cena - stanje.kredit)))
+            else
+              let spremenjena_zaloga = spremeni_kolicino ime (-1) stanje.zaloga in
+              let vracilo = drobiz (stanje.kredit - izdelek.cena) in
+
+              ({stanje with kredit = 0; zaloga = spremenjena_zaloga},
+              Izdaj {izdelek = ime; cena = izdelek.cena; drobiz = vracilo}))
+
+      | Preklici -> ({stanje with kredit = 0}, Vrni (drobiz stanje.kredit))
+
+      | ZacniVzdrzevanje -> ({stanje with nacin = Vzdrzevanje; kredit = 0},
+                            Vrni (drobiz stanje.kredit))
+
+      | KoncajVzdrzevanje | Dopolni _ -> (stanje, Napaka NiVVzdrzevanju))
+
+  | Vzdrzevanje -> (
+      match vnos with
+
+      | Vstavi k -> (stanje, Vrni [k])
+
+      | Izberi _ | Preklici | ZacniVzdrzevanje -> (stanje, Napaka (VVzdrzevanju))
+
+      | KoncajVzdrzevanje -> ({stanje with nacin = Obratuje}, Prikazi stanje.kredit)
+
+      | Dopolni (ime, n) -> (
+          match poisci ime stanje.zaloga with
+
+          | None -> (stanje, Napaka (NiIzdelka ime))
+
+          | Some _ -> let spremenjena_zaloga = spremeni_kolicino ime n stanje.zaloga in 
+                      ({stanje with zaloga = spremenjena_zaloga}, Prikazi (stanje.kredit))))
+
+
 
 let primer_vnosi =
   [
