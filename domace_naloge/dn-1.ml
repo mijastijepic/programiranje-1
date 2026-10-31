@@ -25,9 +25,9 @@ let e3 = (0.0, 0.0, 1.0)
       produkt dveh vektorjev
   [*----------------------------------------------------------------------------*)
 
-let sestej_v_3d (x1, y1, z1) (x2, y2, z2) = (x1 +. x2, y1 +. y2, z1 +. z2)
-let pomnozi_skalar_3d a (x, y, z) = (a *. x, a *. y, a *. z)
-let skalarni_produkt_3d  (x1, y1, z1) (x2, y2, z2) = (x1 *. x2) +. (y1 *. y2) +. (z1 *. z2)
+let sestej_v_3d ((x1, y1, z1):vec3d) ((x2, y2, z2):vec3d):vec3d = (x1 +. x2, y1 +. y2, z1 +. z2)
+let pomnozi_skalar_3d a ((x, y, z):vec3d):vec3d = (a *. x, a *. y, a *. z)
+let skalarni_produkt_3d ((x1, y1, z1):vec3d) ((x2, y2, z2):vec3d) = (x1 *. x2) +. (y1 *. y2) +. (z1 *. z2)
 
 (*----------------------------------------------------------------------------*
     Dimenzijo lahko posplošimo z uporabo seznamov. Vektor v R^n lahko
@@ -48,20 +48,20 @@ type vec = float list
     `Neujemajoca_dimenzija`.
   [*----------------------------------------------------------------------------*)
 
-let rec sestej_v v1 v2 =
+let rec sestej_v (v1:vec) (v2:vec):vec =
   match v1, v2 with
   | [], [] -> []
   | x :: xs, y :: ys -> (x +. y) :: sestej_v xs ys
   | _, _ -> raise Neujemajoca_dimenzija
 
 
-let rec pomnozi_skalar a v =
+let rec pomnozi_skalar a (v:vec):vec =
   match v with
   | [] -> []
   | x :: xs -> (a *. x) :: pomnozi_skalar a xs
 
 
-let rec skalarni_produkt v1 v2 =
+let rec skalarni_produkt (v1:vec) (v2:vec) =
   match v1, v2 with
   | [], [] -> 0.0
   | x :: xs, y :: ys -> (x *. y) +. skalarni_produkt xs ys
@@ -263,7 +263,7 @@ let zacetna_zaloga =
 let rec poisci ime zaloga =
   match zaloga with
   | [] -> None
-  | prvi :: ostali -> if prvi.ime = ime then Some prvi else poisci ime ostali
+  | x :: xs -> if x.ime = ime then Some x else poisci ime xs
 
 
 (*----------------------------------------------------------------------------*
@@ -384,8 +384,8 @@ let korak stanje vnos =
       match vnos with
 
       | Vstavi kovanec -> 
-        let kredit = stanje.kredit + vrednost kovanec in
-        ({stanje with kredit = kredit}, Prikazi kredit)
+        let nov_kredit = stanje.kredit + vrednost kovanec in
+        ({stanje with kredit = nov_kredit}, Prikazi nov_kredit)
 
       | Izberi ime -> (
         match poisci ime stanje.zaloga with
@@ -408,7 +408,7 @@ let korak stanje vnos =
       | ZacniVzdrzevanje -> ({stanje with nacin = Vzdrzevanje; kredit = 0},
                             Vrni (drobiz stanje.kredit))
 
-      | KoncajVzdrzevanje | Dopolni _ -> (stanje, Napaka NiVVzdrzevanju))
+      | KoncajVzdrzevanje | Dopolni _ -> (stanje, Napaka (NiVVzdrzevanju)))
 
   | Vzdrzevanje -> (
       match vnos with
@@ -508,7 +508,8 @@ let napake izhodi =
     (fun izhod acc -> 
       match izhod with
       | Napaka napaka -> napaka :: acc
-      | _ -> acc)
+      | _ -> acc
+      )
     izhodi
     []
                       
