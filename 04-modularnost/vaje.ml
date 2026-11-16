@@ -22,8 +22,20 @@ module type NAT = sig
   val eq  : t -> t -> bool
   val zero : t
   (* Dodajte manjkajoče! *)
-  (* val to_int : t -> int *)
-  (* val of_int : int -> t *)
+
+  val one : t
+
+  val ( ++ ) : t -> t -> t
+
+  val ( ** ) : t -> t -> t
+
+  val ( -- ) : t -> t -> t
+
+
+  val to_int : t -> int
+
+  val of_int : int -> t
+
 end
 
 (*----------------------------------------------------------------------------*
@@ -37,9 +49,26 @@ end
 module Nat_int : NAT = struct
 
   type t = int
-  let eq x y = failwith "later"
+
+  let eq x y = x = y
   let zero = 0
   (* Dodajte manjkajoče! *)
+
+  let one = 1
+
+  let ( ++ ) x y = x + y
+
+  (* let ( ++ ) = ( + ) *)
+
+  let ( ** ) x y = x * y
+
+  let ( -- ) x y =
+    if y >= x then zero
+    else x - y
+
+  let to_int x = x
+
+  let of_int x = x
 
 end
 
@@ -54,10 +83,50 @@ end
 
 module Nat_peano : NAT = struct
 
-  type t = unit (* To morate spremeniti! *)
-  let eq x y = failwith "later"
-  let zero = () (* To morate spremeniti! *)
+  type t =
+  | Zero
+  | Succ of t
+
+  let rec eq x y =
+    match (x, y) with
+    | Zero, Zero -> true
+    | Succ x', Succ y' -> eq x' y'
+    | _ -> false
+
+  let zero = Zero
+
   (* Dodajte manjkajoče! *)
+
+  let one = Succ (Zero)
+
+  let rec ( ++ ) x y =
+    match x with
+    | Zero -> y
+    | Succ x' -> Succ (x' ++ y)
+
+
+  let rec ( ** ) x y =
+    match x with
+    | Zero -> Zero
+    | Succ x' -> y ++ (x' ** y)
+
+
+  let rec ( -- ) x y =
+    match (x, y) with
+    | x, Zero -> x
+    | Succ x', Succ y' -> x' -- y'
+    | Zero, _ -> Zero
+    
+
+  let rec to_int x =
+    match x with
+    | Zero -> 0
+    | Succ x' -> 1 + to_int x'
+
+    let rec of_int x =
+      if x <= 0 then Zero
+      else Succ (of_int (x-1) )
+
 
 end
 
@@ -83,11 +152,18 @@ module type CALC = sig
 end
 
 module Nat_calculations (N: NAT) : CALC with type t := N.t = struct
-  let factorial _ = (* To morate spremeniti! *)
-    N.zero
+  let rec factorial n =
+    if N.eq n N.zero then N.one
+    else N.( ** ) n (factorial (N.( -- ) n N.one))
+    
 
-  let sum_100 = (* To morate spremeniti! *)
-    N.zero
+  open N
+  let sum_100 =
+    let rec aux n acc =
+      if eq n zero then acc
+      else aux (( -- ) n one) (( ++ ) n acc)
+
+    in aux (of_int(100)) zero
 end
 
 (*----------------------------------------------------------------------------*
@@ -100,6 +176,16 @@ end
 
 module Nat_int_calc = Nat_calculations (Nat_int)
 module Nat_peano_calc = Nat_calculations (Nat_peano)
+
+let sum_100_int = 
+  Nat_int_calc.sum_100 |> Nat_int.to_int
+let fact_5_int = 
+  Nat_int.of_int 5 |> Nat_int_calc.factorial |> Nat_int.to_int
+
+let sum_100_peano = 
+  Nat_peano_calc.sum_100 |> Nat_peano.to_int
+let fact_5_peano =
+  Nat_peano.of_int 5 |> Nat_peano_calc.factorial |> Nat_peano.to_int
 
 
 (* val sum_100_int : int = 5050 *)
@@ -117,12 +203,22 @@ module Nat_peano_calc = Nat_calculations (Nat_peano)
  Pretvorjanje iz in v `int` pa definirajte poljubno.
 [*----------------------------------------------------------------------------*)
 
-module Nat_pair (A: NAT) (B: NAT) : NAT = struct
+module Nat_pair (A: NAT) (B: NAT) = struct
   type t = A.t * B.t
 
-  let eq x y = failwith "later"
+  let eq (x1, y1) (x2, y2) = A.eq x1 x2 && B.eq y1 y2
   let zero = (A.zero, B.zero)
   (* Dodajte manjkajoče! *)
+
+  let one = (A.one, B.one)
+
+  let ( ++ ) (x1, y1) (x2, y2) = (A.( ++ ) x1 x2, B.( ++ ) y1 y2) 
+
+  let ( ** ) (x1, y1) (x2, y2) = (A.( ** ) x1 x2, B.( ** ) y1 y2) 
+
+  let ( -- ) (x1, y1) (x2, y2) = (A.( -- ) x1 x2, B.( -- ) y1 y2) 
+
+  let to_int (x, y) = x
 end
 
 module Nat_pair_int_peano = Nat_pair (Nat_int) (Nat_peano)
